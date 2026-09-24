@@ -4,8 +4,8 @@
 * ARCHIVO:         Index_GitHub.html (subir a GitHub Pages como index.html)
 * PROYECTO:        INGeniusCloud | Envoltorio de apps (GitHub Pages)
 * RESPONSABILIDAD: Página envoltorio: elige la app por ?id=, la carga en un iframe a pantalla completa y tiñe las barras del navegador con el color de cada app.
-* VERSIÓN:         1.1
-* CAMBIOS:         R54 (en el teléfono, la barra de direcciones y la zona inferior se veían en negro: el navegador tiñe esas zonas con el color de esta página y nadie declaraba theme-color. Se AÑADE la meta theme-color con el color por defecto #050505 —igual que siempre— y el mapa coloresBarras por app: Centro Ceicca, lead y clas, tiñe las barras con el fondo de la landing #f8fafc. Estructura, estilos, enlaces y lógica del dueño INTACTOS).
+* VERSIÓN:         1.2
+* CAMBIOS:         R55 (en la prueba real del dueño, la meta theme-color de R54 NO pintó las barras de su teléfono: Safari de iPhone tiñe la barra superior y la inferior con el FONDO de la página, no con theme-color —esa meta solo la leen los Chrome de Android—; el propio dueño lo comprobó cambiando el background. El aplicador ahora pinta AMBOS: el fondo de esta página Y la meta theme-color, con el mismo color del mapa coloresBarras. Apps sin entrada y pantalla 404 siguen en #050505).
 * DEPENDENCIAS:    Despliegue: GitHub Pages (este archivo va como index.html). Apps: enlaces de Google Apps Script en enlacesIframes; el color de barras de cada app vive en coloresBarras.
 * ══════════════════════════════════════════════════════════════
 -->
@@ -15,13 +15,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <!-- ═══ COLOR DE LAS BARRAS DEL TELÉFONO (theme-color) ═══
-         El navegador pinta la barra de direcciones (arriba) y la zona
-         inferior (gestos/inicio) con este color. Valor por defecto: el
-         fondo de esta página (#050505), igual que siempre.
-         Las apps que tienen entrada en el mapa coloresBarras (más abajo,
-         en el script) lo cambian al cargarse: el color por app se edita
-         allí. -->
+    <!-- ═══ COLOR DE LAS BARRAS DEL TELÉFONO ═══
+         Esta meta theme-color tiñe las barras en los navegadores de
+         Android (Chrome/Samsung). En iPhone las barras se tiñen con el
+         FONDO de esta página, así que el color por app se aplica en el
+         mapa coloresBarras (más abajo, en el script), que pinta AMBOS.
+         Valor por defecto: el fondo de esta página (#050505), igual que
+         siempre. -->
     <meta name="theme-color" content="#050505">
 
     <link id="pagina-icono" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
@@ -38,7 +38,7 @@
 
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background-color: #f8fafc;
+        background-color: #050505;
         color: #f8fafc;
         display: flex;
         justify-content: center;
@@ -163,12 +163,14 @@
             "cvd": "🆔"
         };
 
-        // ═══ COLOR DE BARRAS POR APP (theme-color) ═══
+        // ═══ COLOR DE BARRAS POR APP ═══
         // Tiñe las barras del navegador (barra de direcciones y zona
         // inferior) con el color de cada app para que la pantalla se vea
-        // completa y sin franjas negras. Las apps sin línea aquí usan el
-        // color por defecto de la meta theme-color (#050505, igual que
-        // siempre).
+        // completa y sin franjas negras. Al cargar la app, con este color
+        // se pintan DOS cosas: el FONDO de esta página (así lo leen
+        // Safari de iPhone y el resto) y la meta theme-color (así lo
+        // leen Chrome y Samsung de Android). Las apps sin línea aquí
+        // quedan en el #050505 de siempre.
         // PARA CAMBIAR EL COLOR A FUTURO: edita el hexadecimal de la app
         // o añade una línea nueva "id": "#hexadecimal".
         const coloresBarras = {
@@ -201,10 +203,15 @@
             elementoIcono.href = crearFaviconSvg(iconoSeleccionado);
 
             // Aplica el color de barras de esta app (si tiene entrada en
-            // coloresBarras); sin entrada, manda el color por defecto.
+            // coloresBarras): pinta el FONDO de esta página —así tiñen las
+            // barras en iPhone/Safari— y actualiza la meta theme-color
+            // —así tiñen en Android—. Sin entrada, todo queda #050505.
             if (coloresBarras[paramId]) {
+                const colorBarras = coloresBarras[paramId];
+                document.documentElement.style.backgroundColor = colorBarras;
+                document.body.style.backgroundColor = colorBarras;
                 const metaColor = document.querySelector('meta[name="theme-color"]');
-                if (metaColor) { metaColor.content = coloresBarras[paramId]; }
+                if (metaColor) { metaColor.content = colorBarras; }
             }
         } else {
             elementoTitulo.innerText = "Ingenius Cloud";
