@@ -1,9 +1,28 @@
 <!DOCTYPE html>
+<!--
+* ══════════════════════════════════════════════════════════════
+* ARCHIVO:         Index_GitHub.html (subir a GitHub Pages como index.html)
+* PROYECTO:        INGeniusCloud | Envoltorio de apps (GitHub Pages)
+* RESPONSABILIDAD: Página envoltorio: elige la app por ?id=, la carga en un iframe a pantalla completa y tiñe las barras del navegador con el color de cada app.
+* VERSIÓN:         1.1
+* CAMBIOS:         R54 (en el teléfono, la barra de direcciones y la zona inferior se veían en negro: el navegador tiñe esas zonas con el color de esta página y nadie declaraba theme-color. Se AÑADE la meta theme-color con el color por defecto #050505 —igual que siempre— y el mapa coloresBarras por app: Centro Ceicca, lead y clas, tiñe las barras con el fondo de la landing #f8fafc. Estructura, estilos, enlaces y lógica del dueño INTACTOS).
+* DEPENDENCIAS:    Despliegue: GitHub Pages (este archivo va como index.html). Apps: enlaces de Google Apps Script en enlacesIframes; el color de barras de cada app vive en coloresBarras.
+* ══════════════════════════════════════════════════════════════
+-->
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <!-- ═══ COLOR DE LAS BARRAS DEL TELÉFONO (theme-color) ═══
+         El navegador pinta la barra de direcciones (arriba) y la zona
+         inferior (gestos/inicio) con este color. Valor por defecto: el
+         fondo de esta página (#050505), igual que siempre.
+         Las apps que tienen entrada en el mapa coloresBarras (más abajo,
+         en el script) lo cambian al cargarse: el color por app se edita
+         allí. -->
+    <meta name="theme-color" content="#050505">
 
     <link id="pagina-icono" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
 
@@ -19,7 +38,7 @@
 
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background-color: #89CFF0:
+        background-color: #050505;
         color: #f8fafc;
         display: flex;
         justify-content: center;
@@ -106,8 +125,8 @@
             "land": "https://script.google.com/macros/s/AKfycbz4Zi0AgMxzSJ95spG1c7-g8lRV8odd7KP3OFFfd9D2sjwNZTevjH7fbSWf8eGXkGv4gQ/exec",
             "SaaS": "https://script.google.com/macros/s/AKfycbwIrvKzuQTq8jIbSPRFirta0mal48ya1NPAxVxn5T0sbtPOTm1YvdCjy4fDVUFjGLhZ4A/exec",
             "main": "https://script.google.com/macros/s/AKfycbwow_aMUByYgG1TxtNAQ1eGDnnyAXRWfBPjHFkQQJjuRvCHmDWltT2-x5mu_rluBgnhLg/exec",
-            "clas": "https://script.google.com/macros/s/AKfycby6mJpXKamGHPfn9AQwQ6p7H5yfH0B1pU1jO56ZvjMe8xeO_f_RsSUoXMUQd9TJ74MUhw/exec",
             "lead": "https://script.google.com/macros/s/AKfycbxgpvZIDTzVSbh1N3Qxj-p8LVDhYi3yuVMGAe8jrFfeOhR5G-OV-HcWRtc5QLwzCpmC/exec",
+            "clas": "https://script.google.com/macros/s/AKfycby6mJpXKamGHPfn9AQwQ6p7H5yfH0B1pU1jO56ZvjMe8xeO_f_RsSUoXMUQd9TJ74MUhw/exec",
 
             "cvd": "https://ingeniuscloud.github.io/cv.dev/"
         };
@@ -124,7 +143,7 @@
             "main": "INGenius Cloud",
             "lead": "Centro Ceicca",
             "clas": "Centro Ceicca",
-            
+
             "cvd": "CV Jesús Aguilera Dev"
         };
 
@@ -140,8 +159,21 @@
             "main": "ℹ️",
             "clas": "ℹ️",
             "lead": "ℹ️",
-            
+
             "cvd": "🆔"
+        };
+
+        // ═══ COLOR DE BARRAS POR APP (theme-color) ═══
+        // Tiñe las barras del navegador (barra de direcciones y zona
+        // inferior) con el color de cada app para que la pantalla se vea
+        // completa y sin franjas negras. Las apps sin línea aquí usan el
+        // color por defecto de la meta theme-color (#050505, igual que
+        // siempre).
+        // PARA CAMBIAR EL COLOR A FUTURO: edita el hexadecimal de la app
+        // o añade una línea nueva "id": "#hexadecimal".
+        const coloresBarras = {
+            "lead": "#f8fafc",
+            "clas": "#f8fafc"
         };
 
         const contenedor = document.getElementById('contenedor-principal');
@@ -167,6 +199,13 @@
 
             const iconoSeleccionado = iconosPagina[paramId] || "🧩";
             elementoIcono.href = crearFaviconSvg(iconoSeleccionado);
+
+            // Aplica el color de barras de esta app (si tiene entrada en
+            // coloresBarras); sin entrada, manda el color por defecto.
+            if (coloresBarras[paramId]) {
+                const metaColor = document.querySelector('meta[name="theme-color"]');
+                if (metaColor) { metaColor.content = coloresBarras[paramId]; }
+            }
         } else {
             elementoTitulo.innerText = "Ingenius Cloud";
             elementoIcono.href = crearFaviconSvg("🧩");
