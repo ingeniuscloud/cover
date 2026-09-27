@@ -3,10 +3,20 @@
 * ══════════════════════════════════════════════════════════════
 * ARCHIVO:         Index_GitHub.html (subir a GitHub Pages como index.html)
 * PROYECTO:        INGeniusCloud | Envoltorio de apps (GitHub Pages)
-* RESPONSABILIDAD: Página envoltorio: elige la app por ?id=, la carga en un iframe a pantalla completa y tiñe las barras del navegador con el color de cada app.
-* VERSIÓN:         1.2
-* CAMBIOS:         R55 (en la prueba real del dueño, la meta theme-color de R54 NO pintó las barras de su teléfono: Safari de iPhone tiñe la barra superior y la inferior con el FONDO de la página, no con theme-color —esa meta solo la leen los Chrome de Android—; el propio dueño lo comprobó cambiando el background. El aplicador ahora pinta AMBOS: el fondo de esta página Y la meta theme-color, con el mismo color del mapa coloresBarras. Apps sin entrada y pantalla 404 siguen en #050505).
-* DEPENDENCIAS:    Despliegue: GitHub Pages (este archivo va como index.html). Apps: enlaces de Google Apps Script en enlacesIframes; el color de barras de cada app vive en coloresBarras.
+* RESPONSABILIDAD: Página envoltorio: elige la app por ?id=, muestra
+*                  el preloader orbital mientras carga el iframe y
+*                  luego lo oculta. El texto central, el ícono, el
+*                  título y el color de barras cambian por app.
+* VERSIÓN:         1.3
+* CAMBIOS:         R56 (integración del Preloader Orbital de la marca.
+*                  El preloader se muestra al cargar el iframe y se
+*                  retira con fade cuando el evento `load` dispara.
+*                  El texto central ahora es configurable por app
+*                  mediante el mapa `textoCentral`, igual que título,
+*                  ícono y color de barras).
+* DEPENDENCIAS:    Despliegue: GitHub Pages. Apps: enlacesIframes;
+*                  textos centrales: textoCentral; íconos: iconosPagina;
+*                  títulos: titulosPagina; colores: coloresBarras.
 * ══════════════════════════════════════════════════════════════
 -->
 <html lang="es">
@@ -51,6 +61,7 @@
         display: flex;
         justify-content: center;
         align-items: stretch;
+        position: relative;
       }
 
       #webApp {
@@ -60,6 +71,134 @@
         display: block;
       }
 
+      /* ═══════════════════════════════════════════════════════
+         PRELOADER ORBITAL · overlay sobre el contenedor
+         ═══════════════════════════════════════════════════════ */
+      .preloader-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        opacity: 1;
+        transition: opacity 0.32s ease;
+        pointer-events: none;
+      }
+      .preloader-overlay.saliendo { opacity: 0; }
+      .preloader-overlay[hidden]  { display: none; }
+
+      .carga-preloader {
+        --text-primary: #0f172a;
+        --text-muted: #64748b;
+        --border-input: #cbd5e1;
+        --logo-primario: #00A3E0;
+        --logo-secundario: #0EA5E9;
+
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      @keyframes rot { to { transform: rotate(360deg); } }
+
+      .carga-loader {
+        position: relative;
+        width: 100px;
+        height: 100px;
+      }
+
+      .carga-orbital {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid color-mix(in srgb, var(--border-input) 80%, transparent);
+      }
+
+      .carga-orbital-1 {
+        inset: 0;
+        border-top-color: var(--logo-primario);
+        border-right-color: var(--logo-primario);
+        animation: rot 1.6s linear infinite;
+      }
+
+      .carga-orbital-2 {
+        inset: 12px;
+        border-bottom-color: var(--logo-secundario);
+        border-left-color: var(--logo-secundario);
+        animation: rot 1.2s linear infinite reverse;
+      }
+
+      .carga-core {
+        position: absolute;
+        width: 48px;
+        height: 48px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .carga-core span {
+        font-size: 22px;
+        font-weight: 400;
+        letter-spacing: -0.5px;
+        color: var(--logo-primario);
+        animation: cargaPulso 2s ease-in-out infinite;
+      }
+
+      .carga-brand {
+        margin-top: 25px;
+        font-size: 21px;
+        letter-spacing: -0.6px;
+        color: var(--text-primary);
+        display: inline-flex;
+        align-items: baseline;
+      }
+
+      .carga-brand-in     { color: var(--logo-primario);   font-weight: 900; }
+      .carga-brand-genius { color: var(--text-primary);    font-weight: 700; }
+      .carga-brand-cloud  { color: var(--logo-secundario); font-weight: 300; letter-spacing: 1px; margin-left: 1px; }
+
+      .carga-status {
+        margin-top: 9px;
+        font-size: 12px;
+        letter-spacing: 0.3px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+      }
+
+      .carga-puntos {
+        display: inline-flex;
+        gap: 4px;
+        margin-left: 6px;
+      }
+
+      .carga-puntos span {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--logo-primario);
+        animation: cargaPunto 1.4s infinite;
+      }
+      .carga-puntos span:nth-child(2) { animation-delay: 0.2s; }
+      .carga-puntos span:nth-child(3) { animation-delay: 0.4s; }
+
+      @keyframes cargaPunto {
+        0%, 100% { opacity: 0.2; transform: translateY(0); }
+        50%      { opacity: 1;   transform: translateY(-3px); }
+      }
+      @keyframes cargaPulso {
+        0%, 100% { transform: scale(0.92); opacity: 0.65; }
+        50%      { transform: scale(1);    opacity: 1; }
+      }
+
+      /* ═══════════════════════════════════════════════════════
+         PANTALLA 404
+         ═══════════════════════════════════════════════════════ */
       .error-container {
         text-align: center;
         position: relative;
@@ -163,6 +302,34 @@
             "cvd": "🆔"
         };
 
+        // ═══ TEXTO CENTRAL DEL PRELOADER POR APP ═══
+        // Es el texto que aparece dentro del círculo del preloader.
+        // Las apps sin línea aquí muestran "Ceicca" por defecto.
+        // PARA CAMBIAR EL TEXTO A FUTURO: edita el valor de la app
+        // o añade una línea nueva "id": "Texto".
+        const textoCentral = {
+            "lead": "Ceicca",
+            "clas": "Ceicca",
+            "now":  "SaaS",
+            "anur": "SaaS",
+            "gnur": "SaaS",
+            "hnur": "SaaS",
+            "anav": "SaaS",
+            "qr":   "SaaS",
+            "land": "SaaS",
+            "SaaS": "SaaS",
+            "main": "SaaS",
+
+            "cvd":  "ING"
+        };
+
+        // ═══ TEXTO DE ESTADO DEL PRELOADER POR APP (opcional) ═══
+        // Si no se define, se usa "Cargando" como texto por defecto.
+        const estadoPorApp = {
+            "lead": "Cargando catálogo",
+            "clas": "Cargando catálogo"
+        };
+
         // ═══ COLOR DE BARRAS POR APP ═══
         // Tiñe las barras del navegador (barra de direcciones y zona
         // inferior) con el color de cada app para que la pantalla se vea
@@ -186,26 +353,61 @@
             return `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>${emoji}</text></svg>`;
         }
 
+        // Devuelve el nodo del preloader orbital con el texto central y
+        // el estado ya inyectados.
+        function crearPreloader(textoCentralTxt, textoEstado) {
+            var wrap = document.createElement('div');
+            wrap.className = 'preloader-overlay';
+            wrap.innerHTML =
+                '<div class="carga-preloader" role="status" aria-live="polite">' +
+                    '<div class="carga-loader">' +
+                        '<div class="carga-orbital carga-orbital-1"></div>' +
+                        '<div class="carga-orbital carga-orbital-2"></div>' +
+                        '<div class="carga-core"><span></span></div>' +
+                    '</div>' +
+                    '<div class="carga-brand">' +
+                        '<span class="carga-brand-in">IN</span>' +
+                        '<span class="carga-brand-genius">Genius</span>' +
+                        '<span class="carga-brand-cloud">Cloud</span>' +
+                    '</div>' +
+                    '<div class="carga-status">' +
+                        '<span class="carga-status-texto"></span>' +
+                        '<span class="carga-puntos"><span></span><span></span><span></span></span>' +
+                    '</div>' +
+                '</div>';
+
+            wrap.querySelector('.carga-core span').textContent = textoCentralTxt || 'Ceicca';
+            wrap.querySelector('.carga-status-texto').textContent = textoEstado || 'Cargando';
+
+            return wrap;
+        }
+
         if (paramId && enlacesIframes[paramId]) {
-            // IFRAME CON PERMISOS EXPLÍCITOS
-            // Sin estos allow, se bloquean navigator.share, clipboard, vibrate, etc.
+
+            // 1. Preloader + iframe apilados dentro del contenedor
+            const preloader = crearPreloader(
+                textoCentral[paramId] || 'Ceicca',
+                estadoPorApp[paramId] || 'Cargando'
+            );
+
             contenedor.innerHTML = `<iframe
                 id="webApp"
                 src="${enlacesIframes[paramId]}"
                 allow="web-share; clipboard-write; clipboard-read; vibrate; autoplay; fullscreen; geolocation"
                 referrerpolicy="no-referrer-when-downgrade"
                 loading="eager"
+                style="opacity:0; transition:opacity 0.3s ease;"
             ></iframe>`;
 
+            contenedor.appendChild(preloader);
+
+            // 2. Metadatos de la app
             elementoTitulo.innerText = titulosPagina[paramId] || paramId;
 
             const iconoSeleccionado = iconosPagina[paramId] || "🧩";
             elementoIcono.href = crearFaviconSvg(iconoSeleccionado);
 
-            // Aplica el color de barras de esta app (si tiene entrada en
-            // coloresBarras): pinta el FONDO de esta página —así tiñen las
-            // barras en iPhone/Safari— y actualiza la meta theme-color
-            // —así tiñen en Android—. Sin entrada, todo queda #050505.
+            // 3. Color de barras (fondo + theme-color)
             if (coloresBarras[paramId]) {
                 const colorBarras = coloresBarras[paramId];
                 document.documentElement.style.backgroundColor = colorBarras;
@@ -213,6 +415,21 @@
                 const metaColor = document.querySelector('meta[name="theme-color"]');
                 if (metaColor) { metaColor.content = colorBarras; }
             }
+
+            // 4. Al terminar de cargar el iframe → fade del preloader
+            const iframe = document.getElementById('webApp');
+
+            iframe.addEventListener('load', function () {
+                // Mostrar el iframe con fade
+                iframe.style.opacity = '1';
+
+                // Retirar el preloader con fade
+                preloader.classList.add('saliendo');
+                setTimeout(function () {
+                    if (preloader.parentNode) preloader.parentNode.removeChild(preloader);
+                }, 340);
+            });
+
         } else {
             elementoTitulo.innerText = "Ingenius Cloud";
             elementoIcono.href = crearFaviconSvg("🧩");
