@@ -7,16 +7,17 @@
 *                  el preloader orbital mientras carga el iframe y
 *                  luego lo oculta. El texto central, el ícono, el
 *                  título y el color de barras cambian por app.
-* VERSIÓN:         1.3
-* CAMBIOS:         R56 (integración del Preloader Orbital de la marca.
-*                  El preloader se muestra al cargar el iframe y se
-*                  retira con fade cuando el evento `load` dispara.
-*                  El texto central ahora es configurable por app
-*                  mediante el mapa `textoCentral`, igual que título,
-*                  ícono y color de barras).
+* VERSIÓN:         1.4
+* CAMBIOS:         R57 (el preloader ya no se retira al `iframe.load`,
+*                  sino cuando la app emite postMessage('app-lista').
+*                  Esto garantiza que el usuario no vea un flash
+*                  blanco entre que el iframe carga y la app pinta.
+*                  Fallback: si la app no avisa en 5 seg tras load,
+*                  el preloader se retira igual).
 * DEPENDENCIAS:    Despliegue: GitHub Pages. Apps: enlacesIframes;
 *                  textos centrales: textoCentral; íconos: iconosPagina;
 *                  títulos: titulosPagina; colores: coloresBarras.
+*                  La app debe emitir postMessage({tipo:'app-lista'}).
 * ══════════════════════════════════════════════════════════════
 -->
 <html lang="es">
@@ -416,10 +417,14 @@
                 if (metaColor) { metaColor.content = colorBarras; }
             }
 
-            // 4. Al terminar de cargar el iframe → fade del preloader
+            // 4. Retiro del preloader · espera el aviso de la app
             const iframe = document.getElementById('webApp');
+            let preloaderRetirado = false;
 
-            iframe.addEventListener('load', function () {
+            function retirarPreloader() {
+                if (preloaderRetirado) return;
+                preloaderRetirado = true;
+
                 // Mostrar el iframe con fade
                 iframe.style.opacity = '1';
 
@@ -428,6 +433,19 @@
                 setTimeout(function () {
                     if (preloader.parentNode) preloader.parentNode.removeChild(preloader);
                 }, 340);
+            }
+
+            // Ruta normal: la app avisa cuando terminó de pintar
+            window.addEventListener('message', function (e) {
+                if (e.data && e.data.tipo === 'app-lista') {
+                    retirarPreloader();
+                }
+            });
+
+            // Fallback de seguridad: si la app no avisa en 5 seg tras el
+            // evento load, se retira igual para no dejar el preloader fijo.
+            iframe.addEventListener('load', function () {
+                setTimeout(retirarPreloader, 5000);
             });
 
         } else {
