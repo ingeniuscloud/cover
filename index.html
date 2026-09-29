@@ -7,17 +7,29 @@
 *                  el preloader orbital mientras carga el iframe y
 *                  luego lo oculta. El texto central, el ícono, el
 *                  título y el color de barras cambian por app.
-* VERSIÓN:         1.4
-* CAMBIOS:         R57 (el preloader ya no se retira al `iframe.load`,
+* VERSIÓN:         1.5
+* CAMBIOS:         R59 (botón "Instalar app" · PWA SOLO ANDROID: píldora
+*                  abajo a la izquierda que abre el diálogo nativo de
+*                  instalación de Chrome. Aparece SOLO si se cumplen
+*                  TODAS estas condiciones: el teléfono es Android,
+*                  Chrome entregó beforeinstallprompt, la app NO está
+*                  ya instalada, el preloader ya se retiró y pasaron
+*                  2.5 seg, y es la 2ª visita o posterior. Si el usuario
+*                  la cierra, calla 3 días; si instala, desaparece para
+*                  siempre. En iPhone NO aparece: Safari no permite
+*                  instalar por código y el dueño lo descartó).
+*                  R57 (el preloader ya no se retira al `iframe.load`,
 *                  sino cuando la app emite postMessage('app-lista').
 *                  Esto garantiza que el usuario no vea un flash
 *                  blanco entre que el iframe carga y la app pinta.
 *                  Fallback: si la app no avisa en 5 seg tras load,
 *                  el preloader se retira igual).
-* DEPENDENCIAS:    Despliegue: GitHub Pages. Apps: enlacesIframes;
+* DEPENDENCIAS:    Despliegue: GitHub Pages (HTTPS). Apps: enlacesIframes;
 *                  textos centrales: textoCentral; íconos: iconosPagina;
 *                  títulos: titulosPagina; colores: coloresBarras.
 *                  La app debe emitir postMessage({tipo:'app-lista'}).
+*                  Instalación PWA: manifest.json + sw.js + icon-192.png
+*                  + icon-512.png en la MISMA carpeta del repositorio.
 * ══════════════════════════════════════════════════════════════
 -->
 <html lang="es">
@@ -34,6 +46,12 @@
          Valor por defecto: el fondo de esta página (#050505), igual que
          siempre. -->
     <meta name="theme-color" content="#050505">
+
+    <!-- ═══ MANIFIESTO PWA ═══
+         Chrome de Android solo ofrece instalar una página que declara
+         un manifiesto. Va acompañado de sw.js, icon-192.png e
+         icon-512.png en la MISMA carpeta del repositorio. -->
+    <link rel="manifest" href="./manifest.json">
 
     <link id="pagina-icono" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
 
@@ -243,12 +261,83 @@
         text-transform: uppercase;
         margin-top: 10px;
       }
+
+      /* ═════════════════════════════════════════════════════
+         BOTÓN INSTALAR APP (PWA · solo Android)
+         Píldora abajo a la IZQUIERDA: el botón de subir de la
+         landing vive abajo a la DERECHA, dentro del iframe, y esta
+         píldora no debe taparlo. El atributo hidden se declara otra
+         vez aquí porque el display:inline-flex lo pisaría.
+         ═════════════════════════════════════════════════════ */
+      #zona-instalar {
+        position: fixed;
+        left: 14px;
+        bottom: calc(14px + env(safe-area-inset-bottom));
+        z-index: 9000;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 8px 6px 14px;
+        border-radius: 999px;
+        background: #00A3E0;
+        color: #ffffff;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        animation: instalar-entrada 0.35s ease;
+      }
+      #zona-instalar[hidden] { display: none; }
+
+      #btn-instalar {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: none;
+        border: none;
+        color: inherit;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        padding: 6px 0;
+        cursor: pointer;
+      }
+
+      .zona-instalar-divisor {
+        width: 1px;
+        height: 18px;
+        background: rgba(255, 255, 255, 0.35);
+      }
+
+      #btn-instalar-cerrar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.22);
+        color: #ffffff;
+        font-size: 13px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      @keyframes instalar-entrada {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
     </style>
 
     <title id="pagina-titulo">Ingenius Cloud</title>
 </head>
 <body>
     <div class="contenedor" id="contenedor-principal"></div>
+
+    <!-- ═══ BOTÓN INSTALAR APP (solo Android; se muestra y se oculta solo) ═══ -->
+    <div id="zona-instalar" hidden role="group" aria-label="Instalar aplicación">
+        <button id="btn-instalar" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            <span>Instalar app</span>
+        </button>
+        <span class="zona-instalar-divisor" aria-hidden="true"></span>
+        <button id="btn-instalar-cerrar" type="button" aria-label="Cerrar sin instalar">✕</button>
+    </div>
 
     <script>
         const queryString = window.location.search;
@@ -266,7 +355,7 @@
             "SaaS": "https://script.google.com/macros/s/AKfycbwIrvKzuQTq8jIbSPRFirta0mal48ya1NPAxVxn5T0sbtPOTm1YvdCjy4fDVUFjGLhZ4A/exec",
             "main": "https://script.google.com/macros/s/AKfycbwow_aMUByYgG1TxtNAQ1eGDnnyAXRWfBPjHFkQQJjuRvCHmDWltT2-x5mu_rluBgnhLg/exec",
             "lead": "https://script.google.com/macros/s/AKfycbx930qsfOBKNs0lqh90To5GrluqNWIBeYa85zSyJSc7CvYBrF2DSyzjs38Cd7jwFMJTIg/exec",
-            "clas": "https://script.google.com/macros/s/AKfycbxBZDPI6pMjmFp_C6CdyHbmCnlWKdf3QZblQVVMfUKVN-1KGnahy6tc9_o7kCZ_MJ1maw/exec",
+            "clas": "https://script.google.com/macros/s/AKfycbwV-bfsb0wnw4Z8uQj35FbiAu5JMGG1YCVf9kB7dsu5cPOIHKR5mXG-qSUeBGYVHlMf/exec",
 
             "cvd": "https://ingeniuscloud.github.io/cv.dev/"
         };
@@ -425,6 +514,10 @@
                 if (preloaderRetirado) return;
                 preloaderRetirado = true;
 
+                // Aviso para el botón "Instalar app" (R59): aquí arranca
+                // su cuenta de 2.5 seg antes de evaluarse.
+                document.dispatchEvent(new Event('preloader-retirado'));
+
                 // Mostrar el iframe con fade
                 iframe.style.opacity = '1';
 
@@ -458,6 +551,87 @@
                 </div>
             `;
         }
+
+        // ═══ BOTÓN "INSTALAR APP" (PWA · SOLO ANDROID) ═══
+        // Chrome de Android avisa con beforeinstallprompt cuando la
+        // página es instalable (para eso existen manifest.json, sw.js y
+        // los iconos en el repositorio). La píldora aparece SOLO cuando
+        // se cumplen TODAS estas condiciones a la vez:
+        //   1. Navegador de Android (iPhone no dispara el aviso y no
+        //      muestra nada, tal como pidió el dueño).
+        //   2. Chrome entregó beforeinstallprompt (página instalable).
+        //   3. La app NO está ya instalada (modo standalone).
+        //   4. El preloader ya se retiró y pasaron 2.5 seg: no molesta
+        //      durante la carga ni compite con la entrada de la app.
+        //   5. Es la 2ª visita o posterior (la 1ª visita solo cuenta).
+        // Si el usuario cierra la píldora, no vuelve por 3 días. Si
+        // instala la app, desaparece y no vuelve en ninguna visita.
+        (function () {
+            const zonaInstalar = document.getElementById('zona-instalar');
+            if (!zonaInstalar) return;
+
+            let eventoInstalacion = null;   // beforeinstallprompt capturado
+            let preloaderCerro = false;     // la app ya terminó de cargar
+            const esAndroid = /android/i.test(navigator.userAgent);
+            let yaInstalada = window.matchMedia('(display-mode: standalone)').matches;
+
+            // Contador de visitas: la 1ª solo cuenta, desde la 2ª se
+            // ofrece la instalación.
+            const visitas = parseInt(localStorage.getItem('ingc_visitas') || '0', 10) + 1;
+            localStorage.setItem('ingc_visitas', String(visitas));
+
+            // Si cerraron la píldora, guarda la fecha y calla 3 días.
+            const descarte = parseInt(localStorage.getItem('ingc_descarte') || '0', 10);
+            const descartadoReciente = descarte && (Date.now() - descarte) < 3 * 24 * 60 * 60 * 1000;
+
+            function decidirSiMostrar() {
+                if (yaInstalada || !esAndroid || !eventoInstalacion || !preloaderCerro) return;
+                if (descartadoReciente || visitas < 2) return;
+                zonaInstalar.hidden = false;   // el CSS anima la entrada
+            }
+
+            window.addEventListener('beforeinstallprompt', function (e) {
+                e.preventDefault();            // calla el aviso nativo de Chrome
+                eventoInstalacion = e;         // se guarda para el clic
+                decidirSiMostrar();
+            });
+
+            // El preloader avisa al retirarse (R59); 2.5 seg de cortesía
+            // para que la app termine su entrada antes de mostrar nada.
+            document.addEventListener('preloader-retirado', function () {
+                preloaderCerro = true;
+                setTimeout(decidirSiMostrar, 2500);
+            });
+
+            document.getElementById('btn-instalar').addEventListener('click', function () {
+                if (!eventoInstalacion) return;
+                zonaInstalar.hidden = true;
+                eventoInstalacion.prompt();    // abre el diálogo nativo de Android
+                eventoInstalacion.userChoice.then(function () { eventoInstalacion = null; });
+            });
+
+            document.getElementById('btn-instalar-cerrar').addEventListener('click', function () {
+                zonaInstalar.hidden = true;
+                localStorage.setItem('ingc_descarte', String(Date.now()));
+            });
+
+            // Si ya se instaló (por la píldora o por el menú de Chrome),
+            // la píldora desaparece y no vuelve en las próximas visitas.
+            window.addEventListener('appinstalled', function () {
+                zonaInstalar.hidden = true;
+                yaInstalada = true;
+            });
+
+            // Registro del service worker: Chrome solo considera
+            // instalable una página controlada por uno. Este es de paso
+            // puro (no guarda caché) para no interferir con las apps de
+            // GAS ni con sus actualizaciones.
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('./sw.js').catch(function () {});
+                });
+            }
+        })();
     </script>
 </body>
 </html>
