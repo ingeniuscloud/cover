@@ -1,7 +1,7 @@
 {
   "_version": "1.0",
   "name": "INGeniusCloud",
-  "short_name": "INGenius",
+  "short_name": "ServyCloud",
   "description": "Apps de INGeniusCloud en tu teléfono",
   "start_url": "./?id=main",
   "scope": "./",
