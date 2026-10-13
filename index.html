@@ -7,8 +7,24 @@
 *                  el preloader orbital mientras carga el iframe y
 *                  luego lo oculta. El texto central, el ícono, el
 *                  título y el color de barras cambian por app.
-* VERSIÓN:         1.5
-* CAMBIOS:         R59 (botón "Instalar app" · PWA SOLO ANDROID: píldora
+* VERSIÓN:         1.6
+* CAMBIOS:         R31 (el botón "Instalar app" instala LA APP DE
+*                  TURNO con EL NOMBRE DE LA APP DE TURNO: hay un
+*                  manifiesto por app — manifest-<id>.json, 10 en
+*                  total, mismos iconos ING con la G en gris — y el
+*                  envoltorio apunta al de la app cargada ANTES de
+*                  que Chrome decida si la página es instalable; el
+*                  diálogo de instalación y el ícono de la pantalla
+*                  de inicio salen con el nombre de ESA app, y el
+*                  acceso directo abre directo esa app por ?id=).
+*                  La píldora y el manifiesto SOLO existen cuando
+*                  hay una app de turno válida: en la pantalla de
+*                  error 404 no se ofrece instalar nada. Limpieza
+*                  del repositorio: ServyCloud tiene su propio
+*                  repositorio y aquí no queda nada suyo (adiós el
+*                  manifest.json único; css/, js/ y su README se
+*                  borran del repositorio; iconos reemplazados).
+*                  R59 (botón "Instalar app" · PWA SOLO ANDROID: píldora
 *                  abajo a la izquierda que abre el diálogo nativo de
 *                  instalación de Chrome. Aparece SOLO si se cumplen
 *                  TODAS estas condiciones: el teléfono es Android,
@@ -28,8 +44,9 @@
 *                  textos centrales: textoCentral; íconos: iconosPagina;
 *                  títulos: titulosPagina; colores: coloresBarras.
 *                  La app debe emitir postMessage({tipo:'app-lista'}).
-*                  Instalación PWA: manifest.json + sw.js + icon-192.png
-*                  + icon-512.png en la MISMA carpeta del repositorio.
+*                  Instalación PWA: UN manifiesto por app
+*                  (manifest-<id>.json) + sw.js + icon-192.png +
+*                  icon-512.png en la MISMA carpeta del repositorio.
 * ══════════════════════════════════════════════════════════════
 -->
 <html lang="es">
@@ -47,11 +64,17 @@
          siempre. -->
     <meta name="theme-color" content="#050505">
 
-    <!-- ═══ MANIFIESTO PWA ═══
+    <!-- ═══ MANIFIESTO PWA POR APP (R31) ═══
          Chrome de Android solo ofrece instalar una página que declara
-         un manifiesto. Va acompañado de sw.js, icon-192.png e
-         icon-512.png en la MISMA carpeta del repositorio. -->
-    <link rel="manifest" href="./manifest.json">
+         un manifiesto. Desde R31 hay UN MANIFIESTO POR APP
+         (manifest-<id>.json, con el nombre de cada app) y el script de
+         abajo apunta al de la app de turno ANTES de que Chrome decida
+         si la página es instalable: así el diálogo de instalación y el
+         ícono de la pantalla de inicio salen con el nombre de ESA app.
+         Si no hay app de turno válida (?id=…), no se declara manifiesto
+         y no se ofrece instalar nada. Va acompañado de sw.js,
+         icon-192.png e icon-512.png en la MISMA carpeta del
+         repositorio. -->
 
     <link id="pagina-icono" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
 
@@ -262,13 +285,16 @@
         margin-top: 10px;
       }
 
-      /* ═════════════════════════════════════════════════════
+      /* ═══════════════════════════════════════════════════════
          BOTÓN INSTALAR APP (PWA · solo Android)
          Píldora abajo a la IZQUIERDA: el botón de subir de la
          landing vive abajo a la DERECHA, dentro del iframe, y esta
          píldora no debe taparlo. El atributo hidden se declara otra
          vez aquí porque el display:inline-flex lo pisaría.
-         ═════════════════════════════════════════════════════ */
+         Desde R31 SOLO existe con una app de turno válida (?id=…)
+         y el diálogo de Chrome muestra el nombre de ESA app
+         (lo pone el manifiesto manifest-<id>.json).
+         ═══════════════════════════════════════════════════════ */
       #zona-instalar {
         position: fixed;
         left: 14px;
@@ -464,6 +490,24 @@
             return wrap;
         }
 
+        // ═══ MANIFIESTO DE LA APP DE TURNO (R31) ═══
+        // Hay un manifiesto por app (manifest-<id>.json) con el nombre
+        // de esa app. Si hay app de turno válida, el <link rel="manifest">
+        // apunta al suyo ANTES de que Chrome evalúe la instalabilidad:
+        // el diálogo de instalación y el ícono de inicio salen con EL
+        // NOMBRE DE ESA APP, y el acceso directo abre ?id=<id> directo.
+        // Si NO hay app de turno válida (error 404), no se declara
+        // manifiesto y no se ofrece instalar nada.
+        if (paramId && enlacesIframes[paramId]) {
+            let linkManifest = document.querySelector('link[rel="manifest"]');
+            if (!linkManifest) {
+                linkManifest = document.createElement('link');
+                linkManifest.rel = 'manifest';
+                document.head.appendChild(linkManifest);
+            }
+            linkManifest.href = './manifest-' + paramId + '.json';
+        }
+
         if (paramId && enlacesIframes[paramId]) {
 
             // 1. Preloader + iframe apilados dentro del contenedor
@@ -546,9 +590,14 @@
 
         // ═══ BOTÓN "INSTALAR APP" (PWA · SOLO ANDROID) ═══
         // Chrome de Android avisa con beforeinstallprompt cuando la
-        // página es instalable (para eso existen manifest.json, sw.js y
-        // los iconos en el repositorio). La píldora aparece SOLO cuando
-        // se cumplen TODAS estas condiciones a la vez:
+        // página es instalable (para eso existen los manifiestos por
+        // app manifest-<id>.json, sw.js y los iconos en el
+        // repositorio). Desde R31 el manifiesto activo es EL DE LA APP
+        // DE TURNO: el diálogo de Chrome y el ícono de la pantalla de
+        // inicio salen con el nombre de esa app. La píldora aparece
+        // SOLO cuando se cumplen TODAS estas condiciones a la vez:
+        //   0. (R31) Hay una app de turno válida (?id=…). En la
+        //      pantalla de error 404 no se ofrece instalar nada.
         //   1. Navegador de Android (iPhone no dispara el aviso y no
         //      muestra nada, tal como pidió el dueño).
         //   2. Chrome entregó beforeinstallprompt (página instalable).
@@ -561,6 +610,10 @@
         (function () {
             const zonaInstalar = document.getElementById('zona-instalar');
             if (!zonaInstalar) return;
+
+            // R31: sin app de turno válida no hay píldora, ni aviso,
+            // ni registro de service worker: no hay nada que instalar.
+            if (!paramId || !enlacesIframes[paramId]) return;
 
             let eventoInstalacion = null;   // beforeinstallprompt capturado
             let preloaderCerro = false;     // la app ya terminó de cargar
@@ -617,7 +670,8 @@
             // Registro del service worker: Chrome solo considera
             // instalable una página controlada por uno. Este es de paso
             // puro (no guarda caché) para no interferir con las apps de
-            // GAS ni con sus actualizaciones.
+            // GAS ni con sus actualizaciones. (R31: SOLO se registra
+            // cuando hay una app de turno válida.)
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
                     navigator.serviceWorker.register('./sw.js').catch(function () {});
